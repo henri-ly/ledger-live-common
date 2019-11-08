@@ -610,6 +610,25 @@ const cryptocurrenciesById: { [name: string]: CryptoCurrency } = {
       }
     ]
   },
+  cosmos: {
+    type: "CryptoCurrency",
+    id: "cosmos",
+    coinType: 118,
+    name: "Cosmos",
+    managerAppName: "Cosmos",
+    ticker: "ATOM",
+    scheme: "cosmos",
+    color: "#16192f",
+    family: "tendermint",
+    units: [
+      {
+        name: "ATOM",
+        code: "ATOM",
+        magnitude: 8
+      }
+    ],
+    explorerViews: []
+  },
   dash: {
     type: "CryptoCurrency",
     id: "dash",

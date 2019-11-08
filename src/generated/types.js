@@ -35,6 +35,15 @@ import type { Transaction as rippleTransaction } from "../families/ripple/types"
 import type { TransactionRaw as rippleTransactionRaw } from "../families/ripple/types";
 import type { NetworkInfo as rippleNetworkInfo } from "../families/ripple/types";
 import type { NetworkInfoRaw as rippleNetworkInfoRaw } from "../families/ripple/types";
+import { reflect as tendermintReflect } from "../families/tendermint/types";
+import type { CoreStatics as CoreStatics_tendermint } from "../families/tendermint/types";
+import type { CoreAccountSpecifics as CoreAccountSpecifics_tendermint } from "../families/tendermint/types";
+import type { CoreOperationSpecifics as CoreOperationSpecifics_tendermint } from "../families/tendermint/types";
+import type { CoreCurrencySpecifics as CoreCurrencySpecifics_tendermint } from "../families/tendermint/types";
+import type { Transaction as tendermintTransaction } from "../families/tendermint/types";
+import type { TransactionRaw as tendermintTransactionRaw } from "../families/tendermint/types";
+import type { NetworkInfo as tendermintNetworkInfo } from "../families/tendermint/types";
+import type { NetworkInfoRaw as tendermintNetworkInfoRaw } from "../families/tendermint/types";
 import { reflect as tezosReflect } from "../families/tezos/types";
 import type { CoreStatics as CoreStatics_tezos } from "../families/tezos/types";
 import type { CoreAccountSpecifics as CoreAccountSpecifics_tezos } from "../families/tezos/types";
@@ -59,6 +68,7 @@ export type SpecificStatics = {}
 & CoreStatics_ethereum
 & CoreStatics_neo
 & CoreStatics_ripple
+& CoreStatics_tendermint
 & CoreStatics_tezos
 & CoreStatics_tron
 export type CoreAccountSpecifics = {}
@@ -66,6 +76,7 @@ export type CoreAccountSpecifics = {}
 & CoreAccountSpecifics_ethereum
 & CoreAccountSpecifics_neo
 & CoreAccountSpecifics_ripple
+& CoreAccountSpecifics_tendermint
 & CoreAccountSpecifics_tezos
 & CoreAccountSpecifics_tron
 export type CoreOperationSpecifics = {}
@@ -73,6 +84,7 @@ export type CoreOperationSpecifics = {}
 & CoreOperationSpecifics_ethereum
 & CoreOperationSpecifics_neo
 & CoreOperationSpecifics_ripple
+& CoreOperationSpecifics_tendermint
 & CoreOperationSpecifics_tezos
 & CoreOperationSpecifics_tron
 export type CoreCurrencySpecifics = {}
@@ -80,6 +92,7 @@ export type CoreCurrencySpecifics = {}
 & CoreCurrencySpecifics_ethereum
 & CoreCurrencySpecifics_neo
 & CoreCurrencySpecifics_ripple
+& CoreCurrencySpecifics_tendermint
 & CoreCurrencySpecifics_tezos
 & CoreCurrencySpecifics_tron
 export type Transaction =
@@ -87,6 +100,7 @@ export type Transaction =
   | ethereumTransaction
   | neoTransaction
   | rippleTransaction
+  | tendermintTransaction
   | tezosTransaction
   | tronTransaction
 export type TransactionRaw =
@@ -94,6 +108,7 @@ export type TransactionRaw =
   | ethereumTransactionRaw
   | neoTransactionRaw
   | rippleTransactionRaw
+  | tendermintTransactionRaw
   | tezosTransactionRaw
   | tronTransactionRaw
 export type NetworkInfo =
@@ -101,6 +116,7 @@ export type NetworkInfo =
   | ethereumNetworkInfo
   | neoNetworkInfo
   | rippleNetworkInfo
+  | tendermintNetworkInfo
   | tezosNetworkInfo
   | tronNetworkInfo
 export type NetworkInfoRaw =
@@ -108,6 +124,7 @@ export type NetworkInfoRaw =
   | ethereumNetworkInfoRaw
   | neoNetworkInfoRaw
   | rippleNetworkInfoRaw
+  | tendermintNetworkInfoRaw
   | tezosNetworkInfoRaw
   | tronNetworkInfoRaw
 export const reflectSpecifics = (declare: *) => [
@@ -115,6 +132,7 @@ export const reflectSpecifics = (declare: *) => [
   ethereumReflect(declare),
   neoReflect(declare),
   rippleReflect(declare),
+  tendermintReflect(declare),
   tezosReflect(declare),
   tronReflect(declare),
 ];
