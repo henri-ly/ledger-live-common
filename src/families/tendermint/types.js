@@ -2,9 +2,9 @@
 
 import type {
   TransactionCommon,
-  TransactionCommonRaw,
+  TransactionCommonRaw
 } from "../../types/transaction";
-import type {CoreAmount, CoreBigInt, Spec} from "../../libcore/types";
+import type { CoreAmount, CoreBigInt, Spec } from "../../libcore/types";
 
 declare class CoreCosmosLikeAddress {
   toBase58(): Promise<string>;
@@ -15,6 +15,7 @@ declare class CoreCosmosLikeTransaction {
   getFees(): Promise<CoreAmount>;
   getReceiver(): Promise<CoreCosmosLikeAddress>;
   getSender(): Promise<CoreCosmosLikeAddress>;
+  getValue(): Promise<CoreAmount>;
   serialize(): Promise<string>;
   setSignature(string, string): Promise<void>;
   setDERSignature(string): Promise<void>;
@@ -24,11 +25,10 @@ declare class CoreCosmosLikeTransaction {
 
 declare class CoreCosmosLikeOperation {
   getTransaction(): Promise<CoreCosmosLikeTransaction>;
-  getMessage(): Promise<CoreCosmoslikeMessage>
+  getMessage(): Promise<CoreCosmoslikeMessage>;
 }
 
-declare class CoreCosmoslikeMessage {
-}
+declare class CoreCosmosLikeMessage {}
 
 declare class CoreCosmosLikeTransactionBuilder {
   sendToAddress(amount: CoreAmount, recipient: string): Promise<void>;
@@ -36,16 +36,17 @@ declare class CoreCosmosLikeTransactionBuilder {
   setDestinationTag(tag: number): Promise<void>;
   setGasLimit(gasLimit: CoreAmount): Promise<CoreCosmosLikeTransactionBuilder>;
   setGasPrice(gasPrice: CoreAmount): Promise<CoreCosmosLikeTransactionBuilder>;
-  setGasAdjustment(gasAdjustment: number): Promise<CoreCosmosLikeTransactionBuilder>;
-  setFees(fees: CoreAmount): Promise<void>;
+  setGasAdjustment(
+    gasAdjustment: number
+  ): Promise<CoreCosmosLikeTransactionBuilder>;
   build(): Promise<CoreCosmosLikeTransaction>;
 }
 
 declare class CoreCosmosLikeAccount {
   buildTransaction(): Promise<CoreCosmosLikeTransactionBuilder>;
+
   broadcastRawTransaction(signed: string): Promise<string>;
-  getFees(): Promise<CoreAmount>;
-  getBaseReserve(): Promise<CoreAmount>;
+  broadcastTransaction(signed: string): Promise<string>;
 }
 
 export type CoreStatics = {
@@ -93,12 +94,4 @@ export type TransactionRaw = {|
   family: "tendermint"
 |};
 
-export const reflect = (declare: (string, Spec) => void) => {
-  declare("CosmosLikeOperation", {
-      methods: {
-        getTransaction: {
-          returns: "CosmosLikeTransaction"
-        }
-      }
-    });
-};
+export const reflect = (_declare: *) => {};
