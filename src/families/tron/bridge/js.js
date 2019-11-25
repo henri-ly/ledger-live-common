@@ -4,8 +4,8 @@ import { Observable } from "rxjs";
 import flatMap from "lodash/flatMap";
 import get from "lodash/get";
 import bs58check from "bs58check";
+import SHA256 from "crypto-js/sha256";
 import { log } from "@ledgerhq/logs";
-import { CurrencyNotSupported } from "@ledgerhq/errors";
 import type {
   Operation,
   TokenCurrency,
@@ -22,10 +22,52 @@ import {
   makeStartSync,
   makeScanAccountsOnDevice
 } from "../../../bridge/jsHelpers";
+import { validateRecipient } from "../../../bridge/shared";
+import { InvalidAddress, RecipientRequired } from "@ledgerhq/errors";
+
+const ADDRESS_SIZE = 34;
+const ADDRESS_PREFIX = "41";
+const ADDRESS_PREFIX_BYTE = 0x41;
 
 const b58 = hex => bs58check.encode(Buffer.from(hex, "hex"));
 const decode58Check = base58 =>
   Buffer.from(bs58check.decode(base58)).toString("hex");
+
+function isAddressValid(base58Str) {
+  try {
+    if (typeof base58Str !== "string") {
+      return false;
+    }
+    if (base58Str.length !== ADDRESS_SIZE) {
+      return false;
+    }
+    var address = bs58check.decode(base58Str);
+    if (address.length !== 25) {
+      return false;
+    }
+    if (address[0] !== ADDRESS_PREFIX_BYTE) {
+      return false;
+    }
+    var checkSum = address.slice(21);
+    address = address.slice(0, 21);
+    var hash0 = SHA256(address);
+    var hash1 = SHA256(hash0);
+    var checkSum1 = hash1.slice(0, 4);
+    if (
+      checkSum[0] == checkSum1[0] &&
+      checkSum[1] == checkSum1[1] &&
+      checkSum[2] == checkSum1[2] &&
+      checkSum[3] == checkSum1[3]
+    ) {
+      return true;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  return false;
+}
+
 async function doSignAndBroadcast({
   a,
   t,
@@ -34,16 +76,28 @@ async function doSignAndBroadcast({
   onSigned,
   onOperationBroadcasted
 }) {
+  const subAccount = t.subAccountId
+    ? a.subAccounts && a.subAccounts.find(sa => sa.id === t.subAccountId)
+    : null;
+
   // Prepare transaction
+
   const txData = {
     to_address: decode58Check(t.recipient),
     owner_address: decode58Check(a.freshAddress),
     amount: t.amount.toNumber()
   };
-  const preparedTransaction = await post(
-    "https://api.trongrid.io/wallet/createtransaction",
-    txData
-  );
+  let url = "https://api.trongrid.io/wallet/createtransaction";
+
+  if (subAccount) {
+    txData.asset_name = Buffer.from(subAccount.token.id.split("/")[2]).toString(
+      "hex"
+    );
+    url = "https://api.trongrid.io/wallet/transferasset";
+  }
+
+  let preparedTransaction = await post(url, txData);
+
   const transport = await open(deviceId);
   let transaction;
   try {
@@ -52,7 +106,15 @@ async function doSignAndBroadcast({
       a.currency,
       transport,
       a.freshAddressPath,
-      preparedTransaction
+      {
+        rawDataHex: preparedTransaction.raw_data_hex,
+        assetName: subAccount
+          ? [
+              "0a0a426974546f7272656e7410061a46304402202e2502f36b00e57be785fc79ec4043abcdd4fdd1b58d737ce123599dffad2cb602201702c307f009d014a553503b499591558b3634ceee4c054c61cedd8aca94c02b"
+            ]
+          : undefined
+        // TODO: Find a way to store this data ? where ? how ?
+      }
     );
     transaction = {
       ...preparedTransaction,
@@ -211,7 +273,7 @@ const getAccountShape = async info => {
     return { balance: BigNumber(0) };
   }
   const acc = tronAcc[0];
-  const spendableBalance = BigNumber(acc.balance);
+  const spendableBalance = acc.balance ? BigNumber(acc.balance) : BigNumber(0);
   const balance = spendableBalance.plus(
     get(acc, "frozen", []).reduce(
       (sum, o) => sum.plus(o.frozen_balance),
@@ -259,20 +321,51 @@ const currencyBridge: CurrencyBridge = {
   scanAccountsOnDevice
 };
 
-const createTransaction = a => {
-  throw new CurrencyNotSupported("tron currency not supported", {
-    currencyName: a.currency.name
-  });
-};
+const createTransaction = () => ({
+  family: "tron",
+  amount: BigNumber(0),
+  recipient: "",
+  networkInfo: null
+});
 
 const updateTransaction = (t, patch) => ({ ...t, ...patch });
 
-const getTransactionStatus = a =>
-  Promise.reject(
-    new CurrencyNotSupported("tron currency not supported", {
+const getTransactionStatus = async (a, t) => {
+  const errors = {};
+  const warnings = {};
+  const tokenAccount = !t.subAccountId
+    ? null
+    : a.subAccounts && a.subAccounts.find(ta => ta.id === t.subAccountId);
+  const account = tokenAccount || a;
+
+  const useAllAmount = !!t.useAllAmount;
+
+  const estimatedFees = BigNumber(0); //TBD
+
+  if (!t.recipient) {
+    errors.recipient = new RecipientRequired("");
+  } else if (!isAddressValid(t.recipient)) {
+    errors.recipient = new InvalidAddress("", {
       currencyName: a.currency.name
-    })
-  );
+    });
+  }
+
+  const totalSpent = useAllAmount ? account.balance : BigNumber(t.amount || 0); // To Review
+
+  const amount = useAllAmount
+    ? tokenAccount
+      ? BigNumber(t.amount)
+      : account.balance
+    : BigNumber(t.amount);
+
+  return Promise.resolve({
+    errors,
+    warnings,
+    amount,
+    estimatedFees,
+    totalSpent
+  });
+};
 
 const signAndBroadcast = (a, t, deviceId) =>
   Observable.create(o => {
@@ -296,7 +389,7 @@ const signAndBroadcast = (a, t, deviceId) =>
         o.complete();
       },
       e => {
-        o.error(e);
+        o.error(String(e));
       }
     );
     return () => {
@@ -304,8 +397,12 @@ const signAndBroadcast = (a, t, deviceId) =>
     };
   });
 
-const prepareTransaction = async (a, t: Transaction): Promise<Transaction> =>
-  Promise.resolve(t);
+const prepareTransaction = async (a, t: Transaction): Promise<Transaction> => {
+  //TODO
+  const networkInfo = t.networkInfo;
+
+  return { ...t, networkInfo };
+};
 
 const accountBridge: AccountBridge<Transaction> = {
   createTransaction,
