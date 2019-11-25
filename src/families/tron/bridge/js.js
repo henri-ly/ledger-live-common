@@ -12,7 +12,7 @@ import type {
   TokenAccount,
   SubAccount
 } from "../../../types";
-import type { Transaction } from "../types";
+import type { Transaction, SendTransactionData } from "../types";
 import type { CurrencyBridge, AccountBridge } from "../../../types/bridge";
 import { findTokenById } from "../../../data/tokens";
 import network from "../../../network";
@@ -82,17 +82,18 @@ async function doSignAndBroadcast({
 
   // Prepare transaction
 
-  const txData = {
+  const txData: SendTransactionData = {
     to_address: decode58Check(t.recipient),
     owner_address: decode58Check(a.freshAddress),
-    amount: t.amount.toNumber()
+    amount: t.amount.toNumber(),
+    asset_name: null
   };
   let url = "https://api.trongrid.io/wallet/createtransaction";
 
   if (subAccount) {
     txData.asset_name = Buffer.from(subAccount.token.id.split("/")[2]).toString(
       "hex"
-    );
+    ); // How to fix type problem ?
     url = "https://api.trongrid.io/wallet/transferasset";
   }
 
@@ -397,9 +398,22 @@ const signAndBroadcast = (a, t, deviceId) =>
     };
   });
 
+const getAccountNetwork = async address => {
+  const result = await post("https://api.trongrid.io/wallet/getaccountnet", {
+    address
+  });
+
+  return result;
+};
+
 const prepareTransaction = async (a, t: Transaction): Promise<Transaction> => {
   //TODO
-  const networkInfo = t.networkInfo;
+  const networkInfo =
+    t.networkInfo || (await getAccountNetwork(decode58Check(a.freshAddress)));
+
+  if (t.networkInfo === networkInfo) {
+    return t;
+  }
 
   return { ...t, networkInfo };
 };

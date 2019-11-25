@@ -23,12 +23,21 @@ export type NetworkInfoRaw = {|
 
 export type Transaction = {|
   ...TransactionCommon,
-  family: "tron"
+  family: "tron",
+  networkInfo: ?NetworkInfo
 |};
 
 export type TransactionRaw = {|
   ...TransactionCommonRaw,
-  family: "tron"
+  family: "tron",
+  networkInfo: ?NetworkInfoRaw
+|};
+
+export type SendTransactionData = {|
+  to_address: string,
+  owner_address: string,
+  amount: number,
+  asset_name: ?string
 |};
 
 export const reflect = (_declare: *) => {};

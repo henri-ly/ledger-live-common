@@ -15,7 +15,8 @@ const dataset: DatasetTest = {
               transaction: fromTransactionRaw({
                 family: "tron",
                 recipient: "TLKCi5WwJx79abs5ctQYCyL2pHCyQGZaXM",
-                amount: "10"
+                amount: "10",
+                networkInfo: null
               }),
               expectedStatus: {
                 amount: BigNumber("10"),
