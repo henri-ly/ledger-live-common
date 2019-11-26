@@ -40,4 +40,12 @@ export type SendTransactionData = {|
   asset_name: ?string
 |};
 
+export type SendTransactionDataSuccess = {|
+  raw_data_hex: string,
+  txID: string,
+  signature: ?(string[])
+|};
+// TODO: What needed it's store and not the entire object.
+// Check if we need to type everything from the API call
+
 export const reflect = (_declare: *) => {};

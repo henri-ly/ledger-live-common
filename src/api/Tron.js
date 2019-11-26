@@ -1,0 +1,99 @@
+// @flow
+import type {
+  Transaction,
+  SendTransactionData,
+  SendTransactionDataSuccess
+} from "../families/tron/types";
+import type { Account, SubAccount, Operation } from "../types";
+import bs58check from "bs58check";
+import { log } from "@ledgerhq/logs";
+import network from "../network";
+import get from "lodash/get";
+
+const decode58Check = base58 =>
+  Buffer.from(bs58check.decode(base58)).toString("hex");
+
+async function post(url, body) {
+  const { data } = await network({
+    method: "POST",
+    url,
+    data: body
+  });
+  log("http", url);
+  return data;
+}
+
+async function fetch(url) {
+  const { data } = await network({
+    method: "GET",
+    url
+  });
+  log("http", url);
+  return data;
+}
+
+export const createTronTransaction = async (
+  a: Account,
+  t: Transaction,
+  subAccount: SubAccount | null
+): Promise<SendTransactionDataSuccess> => {
+  const txData: SendTransactionData = {
+    to_address: decode58Check(t.recipient),
+    owner_address: decode58Check(a.freshAddress),
+    amount: t.amount.toNumber(),
+    asset_name: null
+  };
+  let url = "https://api.trongrid.io/wallet/createtransaction";
+  let tokenId = "";
+
+  if (subAccount) {
+    tokenId = subAccount.token.id.split("/")[2]; // Need to get this token id properly
+    txData.asset_name = Buffer.from(tokenId).toString("hex"); // How to fix type problem ?
+    url = "https://api.trongrid.io/wallet/transferasset";
+  }
+
+  const preparedTransaction = await post(url, txData);
+  return preparedTransaction;
+};
+
+export const broadcastTron = async (
+  trxTransaction: SendTransactionDataSuccess
+) => {
+  const result = await post(
+    "https://api.trongrid.io/wallet/broadcasttransaction",
+    trxTransaction
+  );
+  return result;
+};
+
+export async function fetchTronAccount(addr: string) {
+  const data = await fetch(`https://api.trongrid.io/v1/accounts/${addr}`);
+  return data.data;
+}
+
+export async function fetchTronAccountTxs(
+  addr: string,
+  shouldFetchMoreTxs: (Operation[]) => boolean
+) {
+  let payload = await fetch(
+    `https://api.trongrid.io/v1/accounts/${addr}/transactions?limit=200`
+  );
+  let fetchedTxs = payload.data;
+  let txs = [];
+  while (fetchedTxs && Array.isArray(fetchedTxs) && shouldFetchMoreTxs(txs)) {
+    txs = txs.concat(fetchedTxs);
+    const next = get(payload, "meta.links.next");
+    if (!next) return txs;
+    payload = await fetch(next);
+    fetchedTxs = payload.data;
+  }
+  return txs;
+}
+
+export const getTronAccountNetwork = async (address: string) => {
+  const result = await post("https://api.trongrid.io/wallet/getaccountnet", {
+    address: decode58Check(address)
+  });
+
+  return result;
+};

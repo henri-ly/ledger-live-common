@@ -5,17 +5,20 @@ import flatMap from "lodash/flatMap";
 import get from "lodash/get";
 import bs58check from "bs58check";
 import SHA256 from "crypto-js/sha256";
-import { log } from "@ledgerhq/logs";
 import type {
   Operation,
   TokenCurrency,
   TokenAccount,
-  SubAccount
+  SubAccount,
+  ChildAccount
 } from "../../../types";
-import type { Transaction, SendTransactionData } from "../types";
+import type {
+  Transaction,
+  SendTransactionData,
+  SendTransactionDataSuccess
+} from "../types";
 import type { CurrencyBridge, AccountBridge } from "../../../types/bridge";
 import { findTokenById } from "../../../data/tokens";
-import network from "../../../network";
 import { open } from "../../../hw";
 import signTransaction from "../../../hw/signTransaction";
 import {
@@ -24,14 +27,19 @@ import {
 } from "../../../bridge/jsHelpers";
 import { validateRecipient } from "../../../bridge/shared";
 import { InvalidAddress, RecipientRequired } from "@ledgerhq/errors";
+import { tokenLists } from "../tokens-name-hex";
+import {
+  createTronTransaction,
+  broadcastTron,
+  fetchTronAccount,
+  fetchTronAccountTxs,
+  getTronAccountNetwork
+} from "../../../api/Tron";
 
 const ADDRESS_SIZE = 34;
-const ADDRESS_PREFIX = "41";
 const ADDRESS_PREFIX_BYTE = 0x41;
 
 const b58 = hex => bs58check.encode(Buffer.from(hex, "hex"));
-const decode58Check = base58 =>
-  Buffer.from(bs58check.decode(base58)).toString("hex");
 
 function isAddressValid(base58Str) {
   try {
@@ -76,28 +84,16 @@ async function doSignAndBroadcast({
   onSigned,
   onOperationBroadcasted
 }) {
-  const subAccount = t.subAccountId
-    ? a.subAccounts && a.subAccounts.find(sa => sa.id === t.subAccountId)
-    : null;
+  const subAccount =
+    t.subAccountId && a.subAccounts
+      ? a.subAccounts.find(sa => sa.id === t.subAccountId)
+      : null;
 
-  // Prepare transaction
-
-  const txData: SendTransactionData = {
-    to_address: decode58Check(t.recipient),
-    owner_address: decode58Check(a.freshAddress),
-    amount: t.amount.toNumber(),
-    asset_name: null
-  };
-  let url = "https://api.trongrid.io/wallet/createtransaction";
-
-  if (subAccount) {
-    txData.asset_name = Buffer.from(subAccount.token.id.split("/")[2]).toString(
-      "hex"
-    ); // How to fix type problem ?
-    url = "https://api.trongrid.io/wallet/transferasset";
-  }
-
-  let preparedTransaction = await post(url, txData);
+  const preparedTransaction: SendTransactionDataSuccess = await createTronTransaction(
+    a,
+    t,
+    subAccount || null
+  );
 
   const transport = await open(deviceId);
   let transaction;
@@ -111,10 +107,11 @@ async function doSignAndBroadcast({
         rawDataHex: preparedTransaction.raw_data_hex,
         assetName: subAccount
           ? [
-              "0a0a426974546f7272656e7410061a46304402202e2502f36b00e57be785fc79ec4043abcdd4fdd1b58d737ce123599dffad2cb602201702c307f009d014a553503b499591558b3634ceee4c054c61cedd8aca94c02b"
-            ]
+              tokenLists.find(
+                t => t.id.toString() === subAccount.token.id.split("/")[2]
+              )
+            ] // TODO: Find a better way to store this data ? where ?
           : undefined
-        // TODO: Find a way to store this data ? where ? how ?
       }
     );
     transaction = {
@@ -129,7 +126,7 @@ async function doSignAndBroadcast({
     onSigned();
 
     // Broadcast
-    const submittedPayment = await broadcastTronTx(transaction);
+    const submittedPayment = await broadcastTron(transaction);
     if (submittedPayment.result !== true) {
       throw new Error(submittedPayment.resultMessage);
     }
@@ -151,24 +148,6 @@ async function doSignAndBroadcast({
     };
     onOperationBroadcasted(operation);
   }
-}
-
-async function post(url, body) {
-  const { data } = await network({
-    method: "POST",
-    url,
-    data: body
-  });
-  log("http", url);
-  return data;
-}
-
-async function broadcastTronTx(trxTransaction) {
-  const result = await post(
-    "https://api.trongrid.io/wallet/broadcasttransaction",
-    trxTransaction
-  );
-  return result;
 }
 
 const txToOps = ({ id, address }, token: ?TokenCurrency) => (
@@ -234,39 +213,6 @@ const txToOps = ({ id, address }, token: ?TokenCurrency) => (
   });
   return ops;
 };
-
-async function fetch(url) {
-  const { data } = await network({
-    method: "GET",
-    url
-  });
-  log("http", url);
-  return data;
-}
-
-async function fetchTronAccount(addr: string) {
-  const data = await fetch(`https://api.trongrid.io/v1/accounts/${addr}`);
-  return data.data;
-}
-
-async function fetchTronAccountTxs(
-  addr: string,
-  shouldFetchMoreTxs: (Operation[]) => boolean
-) {
-  let payload = await fetch(
-    `https://api.trongrid.io/v1/accounts/${addr}/transactions?limit=200`
-  );
-  let fetchedTxs = payload.data;
-  let txs = [];
-  while (fetchedTxs && Array.isArray(fetchedTxs) && shouldFetchMoreTxs(txs)) {
-    txs = txs.concat(fetchedTxs);
-    const next = get(payload, "meta.links.next");
-    if (!next) return txs;
-    payload = await fetch(next);
-    fetchedTxs = payload.data;
-  }
-  return txs;
-}
 
 const getAccountShape = async info => {
   const tronAcc = await fetchTronAccount(info.address);
@@ -398,18 +344,15 @@ const signAndBroadcast = (a, t, deviceId) =>
     };
   });
 
-const getAccountNetwork = async address => {
-  const result = await post("https://api.trongrid.io/wallet/getaccountnet", {
-    address
-  });
-
-  return result;
-};
-
 const prepareTransaction = async (a, t: Transaction): Promise<Transaction> => {
-  //TODO
+  //TODO: See how Transaction fees work, doesn't seems to cost any TRX but bandwich.
+  // see : https://developers.tron.network/docs/bandwith#section-bandwidth-points-consumption
+  // 1. cost around 200 Bandwidth, if not enough check Free Bandwidth
+  // 2. If not enough, will cost some TRX
+  // 3. normal transfert cost around 0.002 TRX
+  // Special case: If activated an account, cost around 0.1 TRX
   const networkInfo =
-    t.networkInfo || (await getAccountNetwork(decode58Check(a.freshAddress)));
+    t.networkInfo || (await getTronAccountNetwork(a.freshAddress));
 
   if (t.networkInfo === networkInfo) {
     return t;
