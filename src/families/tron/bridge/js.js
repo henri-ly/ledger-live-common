@@ -268,9 +268,10 @@ const getTransactionStatus = async (a, t) => {
 
   const amount = BigNumber(t.amount || 0);
 
+  const totalSpent = amount;
   // TODO: Total spent with possible fee and bandwidth calc
 
-  if (amount.gt(BigNumber(account.balance))) {
+  if (totalSpent.gt(BigNumber(account.balance))) {
     errors.amount = new NotEnoughBalance();
   }
 
