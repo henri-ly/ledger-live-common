@@ -97,3 +97,20 @@ export const getTronAccountNetwork = async (address: string) => {
 
   return result;
 };
+
+// TODO: Find an another way to validate formula, I don't like to depend on api for this
+export const validateAddress = async (address: string) => {
+  try {
+    const result = await post(
+      "https://api.trongrid.io/wallet/validateaddress",
+      {
+        address: decode58Check(address)
+      }
+    );
+
+    return result.result || false;
+  } catch (e) {
+    // dont throw anything
+  }
+  return false;
+};

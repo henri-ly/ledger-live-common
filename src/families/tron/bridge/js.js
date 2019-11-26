@@ -26,55 +26,26 @@ import {
   makeScanAccountsOnDevice
 } from "../../../bridge/jsHelpers";
 import { validateRecipient } from "../../../bridge/shared";
-import { InvalidAddress, RecipientRequired } from "@ledgerhq/errors";
+import {
+  InvalidAddress,
+  RecipientRequired,
+  NotEnoughBalance,
+  AmountRequired
+} from "@ledgerhq/errors";
 import { tokenLists } from "../tokens-name-hex";
 import {
   createTronTransaction,
   broadcastTron,
   fetchTronAccount,
   fetchTronAccountTxs,
-  getTronAccountNetwork
+  getTronAccountNetwork,
+  validateAddress
 } from "../../../api/Tron";
 
 const ADDRESS_SIZE = 34;
 const ADDRESS_PREFIX_BYTE = 0x41;
 
 const b58 = hex => bs58check.encode(Buffer.from(hex, "hex"));
-
-function isAddressValid(base58Str) {
-  try {
-    if (typeof base58Str !== "string") {
-      return false;
-    }
-    if (base58Str.length !== ADDRESS_SIZE) {
-      return false;
-    }
-    var address = bs58check.decode(base58Str);
-    if (address.length !== 25) {
-      return false;
-    }
-    if (address[0] !== ADDRESS_PREFIX_BYTE) {
-      return false;
-    }
-    var checkSum = address.slice(21);
-    address = address.slice(0, 21);
-    var hash0 = SHA256(address);
-    var hash1 = SHA256(hash0);
-    var checkSum1 = hash1.slice(0, 4);
-    if (
-      checkSum[0] == checkSum1[0] &&
-      checkSum[1] == checkSum1[1] &&
-      checkSum[2] == checkSum1[2] &&
-      checkSum[3] == checkSum1[3]
-    ) {
-      return true;
-    }
-  } catch (e) {
-    // ignore
-  }
-
-  return false;
-}
 
 async function doSignAndBroadcast({
   a,
@@ -285,25 +256,27 @@ const getTransactionStatus = async (a, t) => {
     : a.subAccounts && a.subAccounts.find(ta => ta.id === t.subAccountId);
   const account = tokenAccount || a;
 
-  const useAllAmount = !!t.useAllAmount;
-
   const estimatedFees = BigNumber(0); //TBD
 
   if (!t.recipient) {
     errors.recipient = new RecipientRequired("");
-  } else if (!isAddressValid(t.recipient)) {
+  } else if (!(await validateAddress(t.recipient))) {
     errors.recipient = new InvalidAddress("", {
       currencyName: a.currency.name
     });
   }
 
-  const totalSpent = useAllAmount ? account.balance : BigNumber(t.amount || 0); // To Review
+  const amount = BigNumber(t.amount || 0);
 
-  const amount = useAllAmount
-    ? tokenAccount
-      ? BigNumber(t.amount)
-      : account.balance
-    : BigNumber(t.amount);
+  // TODO: Total spent with possible fee and bandwidth calc
+
+  if (amount.gt(BigNumber(account.balance))) {
+    errors.amount = new NotEnoughBalance();
+  }
+
+  if (!errors.amount && amount.eq(0)) {
+    errors.amount = new AmountRequired();
+  }
 
   return Promise.resolve({
     errors,
