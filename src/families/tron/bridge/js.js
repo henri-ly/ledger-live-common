@@ -32,7 +32,7 @@ import {
   NotEnoughBalance,
   AmountRequired
 } from "@ledgerhq/errors";
-import { tokenLists } from "../tokens-name-hex";
+import { tokenList } from "../tokens-name-hex";
 import {
   createTronTransaction,
   broadcastTron,
@@ -78,9 +78,9 @@ async function doSignAndBroadcast({
         rawDataHex: preparedTransaction.raw_data_hex,
         assetName: subAccount
           ? [
-              tokenLists.find(
+              tokenList.find(
                 t => t.id.toString() === subAccount.token.id.split("/")[2]
-              )
+              ).message
             ] // TODO: Find a better way to store this data ? where ?
           : undefined
       }
