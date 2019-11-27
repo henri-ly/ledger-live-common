@@ -121,7 +121,5 @@ export async function inferTransactions(
     )
   );
 
-  console.log(transactions);
-
   return transactions;
 }

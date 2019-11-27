@@ -310,7 +310,7 @@ const signAndBroadcast = (a, t, deviceId) =>
         o.complete();
       },
       e => {
-        o.error(String(e));
+        o.error(e);
       }
     );
     return () => {
