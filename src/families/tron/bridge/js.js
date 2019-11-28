@@ -44,6 +44,7 @@ import {
 
 const ADDRESS_SIZE = 34;
 const ADDRESS_PREFIX_BYTE = 0x41;
+const AVERAGE_BANDWIDTH_COST = 200;
 
 const b58 = hex => bs58check.encode(Buffer.from(hex, "hex"));
 
@@ -109,7 +110,7 @@ async function doSignAndBroadcast({
       accountId: a.id,
       type: "OUT",
       value: t.amount,
-      fee: BigNumber(0), // TBD
+      fee: getEstimatedFees(t),
       blockHash: null,
       blockHeight: null,
       senders: [a.freshAddress],
@@ -248,6 +249,42 @@ const createTransaction = () => ({
 
 const updateTransaction = (t, patch) => ({ ...t, ...patch });
 
+const getEstimatedFees = async t => {
+  // see : https://developers.tron.network/docs/bandwith#section-bandwidth-points-consumption
+  // 1. cost around 200 Bandwidth, if not enough check Free Bandwidth
+  // 2. If not enough, will cost some TRX
+  // 3. normal transfert cost around 0.002 TRX
+  // Special case: If activated an account, cost around 0.1 TRX
+  let fees = BigNumber(0);
+
+  // Calculate Bandwidth :
+  if (t.networkInfo) {
+    const {
+      freeNetUsed = 0,
+      freeNetLimit = 0,
+      NetUsed = 0,
+      NetLimit = 0
+    } = t.networkInfo;
+    const bandwidth = freeNetLimit - freeNetUsed + NetLimit - NetUsed;
+
+    if (bandwidth < AVERAGE_BANDWIDTH_COST) {
+      fees = fees.plus(BigNumber(2000));
+      // Cost is around 0.002 TRX
+    }
+  }
+
+  // Active the account if there's no data, that require fees
+  if (t.recipient) {
+    const recipientAccount = await fetchTronAccount(t.recipient);
+    if (recipientAccount.length === 0) {
+      fees = fees.plus(BigNumber(100000));
+      // Cost is around 0.1 TRX
+    }
+  }
+
+  return fees;
+};
+
 const getTransactionStatus = async (a, t) => {
   const errors = {};
   const warnings = {};
@@ -256,7 +293,7 @@ const getTransactionStatus = async (a, t) => {
     : a.subAccounts && a.subAccounts.find(ta => ta.id === t.subAccountId);
   const account = tokenAccount || a;
 
-  const estimatedFees = BigNumber(0); //TBD
+  const estimatedFees = await getEstimatedFees(t); //TBD
 
   if (!t.recipient) {
     errors.recipient = new RecipientRequired("");
@@ -268,14 +305,11 @@ const getTransactionStatus = async (a, t) => {
 
   const amount = BigNumber(t.amount || 0);
 
-  const totalSpent = amount;
-  // TODO: Total spent with possible fee and bandwidth calc
+  const totalSpent = BigNumber(t.amount || 0).plus(estimatedFees);
 
   if (totalSpent.gt(BigNumber(account.balance))) {
     errors.amount = new NotEnoughBalance();
-  }
-
-  if (!errors.amount && amount.eq(0)) {
+  } else if (!errors.amount && amount.eq(0)) {
     errors.amount = new AmountRequired();
   }
 
@@ -319,12 +353,6 @@ const signAndBroadcast = (a, t, deviceId) =>
   });
 
 const prepareTransaction = async (a, t: Transaction): Promise<Transaction> => {
-  //TODO: See how Transaction fees work, doesn't seems to cost any TRX but bandwich.
-  // see : https://developers.tron.network/docs/bandwith#section-bandwidth-points-consumption
-  // 1. cost around 200 Bandwidth, if not enough check Free Bandwidth
-  // 2. If not enough, will cost some TRX
-  // 3. normal transfert cost around 0.002 TRX
-  // Special case: If activated an account, cost around 0.1 TRX
   const networkInfo =
     t.networkInfo || (await getTronAccountNetwork(a.freshAddress));
 

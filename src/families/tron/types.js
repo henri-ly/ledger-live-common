@@ -14,11 +14,19 @@ export type CoreOperationSpecifics = {};
 export type CoreCurrencySpecifics = {};
 
 export type NetworkInfo = {|
-  family: "tron"
+  family: "tron",
+  freeNetUsed: number,
+  freeNetLimit: number,
+  NetUsed: number,
+  NetLimit: number
 |};
 
 export type NetworkInfoRaw = {|
-  family: "tron"
+  family: "tron",
+  freeNetUsed: number,
+  freeNetLimit: number,
+  NetUsed: number,
+  NetLimit: number
 |};
 
 export type Transaction = {|
