@@ -16,7 +16,8 @@ const dataset: DatasetTest = {
                 family: "tron",
                 recipient: "TLKCi5WwJx79abs5ctQYCyL2pHCyQGZaXM",
                 amount: "10",
-                networkInfo: null
+                networkInfo: null,
+                mode: "send"
               }),
               expectedStatus: {
                 amount: BigNumber("10"),

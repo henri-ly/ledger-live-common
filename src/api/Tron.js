@@ -2,7 +2,9 @@
 import type {
   Transaction,
   SendTransactionData,
-  SendTransactionDataSuccess
+  SendTransactionDataSuccess,
+  FreezeTransactionData,
+  UnfreezeTransactionData
 } from "../families/tron/types";
 import type { Account, SubAccount, Operation } from "../types";
 import bs58check from "bs58check";
@@ -31,6 +33,37 @@ async function fetch(url) {
   log("http", url);
   return data;
 }
+
+export const freezeTronTransaction = async (a: Account, t: Transaction) => {
+  const txData: FreezeTransactionData = {
+    frozen_balance: t.amount.toNumber(),
+    frozen_duration: t.duration || 3,
+    resource: t.resource,
+    owner_address: decode58Check(a.freshAddress)
+  };
+  if (t.recipient) {
+    txData["receiver_address"] = decode58Check(t.recipient);
+  }
+  const url = "https://api.trongrid.io/wallet/freezebalance";
+  const result = await post(url, txData);
+  return result;
+};
+
+export const unfreezeTronTransaction = async (a: Account, t: Transaction) => {
+  const txData: UnfreezeTransactionData = {
+    resource: t.resource,
+    owner_address: decode58Check(a.freshAddress)
+  };
+
+  if (t.recipient) {
+    txData["receiver_address"] = decode58Check(t.recipient);
+  }
+  const url = "https://api.trongrid.io/wallet/unfreezebalance";
+  const result = await post(url, txData);
+  //TODO: Error on unfreeze if the day is not available
+
+  return result;
+};
 
 export const createTronTransaction = async (
   a: Account,
@@ -91,11 +124,15 @@ export async function fetchTronAccountTxs(
 }
 
 export const getTronAccountNetwork = async (address: string) => {
-  const result = await post("https://api.trongrid.io/wallet/getaccountnet", {
-    address: decode58Check(address)
-  });
-
-  return result;
+  try {
+    const result = await post("https://api.trongrid.io/wallet/getaccountnet", {
+      address: decode58Check(address)
+    });
+    return result;
+  } catch (e) {
+    //Don't throw error
+  }
+  return {};
 };
 
 // TODO: Find an another way to validate formula, I don't like to depend on api for this

@@ -39,11 +39,11 @@ import {
   fetchTronAccount,
   fetchTronAccountTxs,
   getTronAccountNetwork,
-  validateAddress
+  validateAddress,
+  freezeTronTransaction,
+  unfreezeTronTransaction
 } from "../../../api/Tron";
 
-const ADDRESS_SIZE = 34;
-const ADDRESS_PREFIX_BYTE = 0x41;
 const AVERAGE_BANDWIDTH_COST = 200;
 
 const b58 = hex => bs58check.encode(Buffer.from(hex, "hex"));
@@ -61,11 +61,12 @@ async function doSignAndBroadcast({
       ? a.subAccounts.find(sa => sa.id === t.subAccountId)
       : null;
 
-  const preparedTransaction: SendTransactionDataSuccess = await createTronTransaction(
-    a,
-    t,
-    subAccount || null
-  );
+  const preparedTransaction: SendTransactionDataSuccess =
+    t.mode === "unfreeze"
+      ? await unfreezeTronTransaction(a, t)
+      : t.mode === "freeze"
+      ? await freezeTronTransaction(a, t)
+      : await createTronTransaction(a, t, subAccount || null);
 
   const transport = await open(deviceId);
   let transaction;
@@ -110,7 +111,7 @@ async function doSignAndBroadcast({
       accountId: a.id,
       type: "OUT",
       value: t.amount,
-      fee: getEstimatedFees(t),
+      fee: BigNumber(0),
       blockHash: null,
       blockHeight: null,
       senders: [a.freshAddress],
@@ -201,7 +202,6 @@ const getAccountShape = async info => {
   );
 
   const txs = await fetchTronAccountTxs(info.address, txs => txs.length < 1000);
-
   const operations = flatMap(txs, txToOps(info));
 
   const subAccounts: SubAccount[] = [];
@@ -243,6 +243,8 @@ const currencyBridge: CurrencyBridge = {
 const createTransaction = () => ({
   family: "tron",
   amount: BigNumber(0),
+  mode: "send",
+  duration: 3,
   recipient: "",
   networkInfo: null
 });
@@ -293,8 +295,6 @@ const getTransactionStatus = async (a, t) => {
     : a.subAccounts && a.subAccounts.find(ta => ta.id === t.subAccountId);
   const account = tokenAccount || a;
 
-  const estimatedFees = await getEstimatedFees(t); //TBD
-
   if (!t.recipient) {
     errors.recipient = new RecipientRequired("");
   } else if (!(await validateAddress(t.recipient))) {
@@ -303,6 +303,9 @@ const getTransactionStatus = async (a, t) => {
     });
   }
 
+  const estimatedFees = errors.recipient
+    ? BigNumber(0)
+    : await getEstimatedFees(t); //TBD
   const amount = BigNumber(t.amount || 0);
 
   const totalSpent = BigNumber(t.amount || 0).plus(estimatedFees);

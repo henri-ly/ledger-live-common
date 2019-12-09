@@ -15,6 +15,21 @@ const options = [
     alias: "t",
     type: String,
     desc: "use an token account children of the account"
+  },
+  {
+    name: "mode",
+    type: String,
+    desc: "mode of transaction: send, freeze, unfreeze"
+  },
+  {
+    name: "duration",
+    type: String,
+    desc: "duration in day"
+  },
+  {
+    name: "resource",
+    type: String,
+    desc: "reward ENERGY or BANDWIDTH"
   }
 ];
 
@@ -57,8 +72,10 @@ function inferTransactions(
     }
     return {
       ...transaction,
+      mode: opts.mode || "send",
       family: "tron",
-      subAccountId
+      subAccountId,
+      resource: opts.resource
     };
   });
 }

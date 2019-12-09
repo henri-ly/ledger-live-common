@@ -13,6 +13,9 @@ export type CoreOperationSpecifics = {};
 
 export type CoreCurrencySpecifics = {};
 
+export type TronOperationMode = "send" | "freeze" | "unfreeze";
+export type TronResource = "bandwidth" | "energy";
+
 export type NetworkInfo = {|
   family: "tron",
   freeNetUsed: number,
@@ -32,13 +35,19 @@ export type NetworkInfoRaw = {|
 export type Transaction = {|
   ...TransactionCommon,
   family: "tron",
-  networkInfo: ?NetworkInfo
+  mode: TronOperationMode,
+  resource: ?TronResource,
+  networkInfo: ?NetworkInfo,
+  duration: ?number
 |};
 
 export type TransactionRaw = {|
   ...TransactionCommonRaw,
+  mode: TronOperationMode,
   family: "tron",
-  networkInfo: ?NetworkInfoRaw
+  resource: ?TronResource,
+  networkInfo: ?NetworkInfoRaw,
+  duration: ?number
 |};
 
 export type SendTransactionData = {|
@@ -46,6 +55,20 @@ export type SendTransactionData = {|
   owner_address: string,
   amount: number,
   asset_name: ?string
+|};
+
+export type UnfreezeTransactionData = {|
+  receiver_address?: string,
+  owner_address: string,
+  resource: ?TronResource
+|};
+
+export type FreezeTransactionData = {|
+  receiver_address?: string,
+  owner_address: string,
+  frozen_balance: number,
+  frozen_duration: number,
+  resource: ?TronResource
 |};
 
 export type SendTransactionDataSuccess = {|

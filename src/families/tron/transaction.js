@@ -10,7 +10,10 @@ const fromTransactionRaw = (tr: TransactionRaw): Transaction => {
   return {
     ...common,
     networkInfo: tr.networkInfo,
-    family: tr.family
+    family: tr.family,
+    mode: tr.mode,
+    resource: tr.resource || null,
+    duration: tr.duration || 3
   };
 };
 
@@ -19,7 +22,10 @@ const toTransactionRaw = (t: Transaction): TransactionRaw => {
   return {
     ...common,
     networkInfo: t.networkInfo,
-    family: t.family
+    family: t.family,
+    mode: t.mode,
+    resource: t.resource || null,
+    duration: t.duration || 3
   };
 };
 
