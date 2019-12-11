@@ -53,12 +53,10 @@ export const freezeTronTransaction = async (a: Account, t: Transaction) => {
 export const unfreezeTronTransaction = async (a: Account, t: Transaction) => {
   const txData: UnfreezeTransactionData = {
     resource: t.resource,
-    owner_address: decode58Check(a.freshAddress)
+    owner_address: decode58Check(a.freshAddress),
+    receiver_address: decode58Check(t.recipient),
   };
 
-  if (t.recipient) {
-    txData["receiver_address"] = decode58Check(t.recipient);
-  }
   const url = "https://api.trongrid.io/wallet/unfreezebalance";
   const result = await post(url, txData);
   //TODO: Error on unfreeze if the day is not available
@@ -142,9 +140,7 @@ export const validateAddress = async (address: string) => {
   try {
     const result = await post(
       "https://api.trongrid.io/wallet/validateaddress",
-      {
-        address: decode58Check(address)
-      }
+      { address: decode58Check(address) }
     );
 
     return result.result || false;
