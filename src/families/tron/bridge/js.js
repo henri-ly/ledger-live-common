@@ -10,7 +10,9 @@ import type {
   TokenCurrency,
   TokenAccount,
   SubAccount,
-  ChildAccount
+  ChildAccount,
+  NetworkInfo,
+  TransactionStatus
 } from "../../../types";
 import type {
   Transaction,
@@ -61,15 +63,20 @@ async function doSignAndBroadcast({
       ? a.subAccounts.find(sa => sa.id === t.subAccountId)
       : null;
 
-  const preparedTransaction: SendTransactionDataSuccess =
-    t.mode === "unfreeze"
-      ? await unfreezeTronTransaction(a, t)
-      : t.mode === "freeze"
-      ? await freezeTronTransaction(a, t)
-      : await createTronTransaction(a, t, subAccount || null);
+  const getPreparedTransaction = () => {
+    switch(t.mode) {
+      case "unfreeze":
+        return unfreezeTronTransaction(a, t);
+      case "freeze":
+        return unfreezeTronTransaction(a, t);
+      default:
+        return createTronTransaction(a, t, subAccount || null);
+    }
+  }
 
+  const preparedTransaction = await getPreparedTransaction();
   const transport = await open(deviceId);
-  let transaction;
+
   try {
     // Sign by device
     const signature = await signTransaction(
@@ -78,48 +85,50 @@ async function doSignAndBroadcast({
       a.freshAddressPath,
       {
         rawDataHex: preparedTransaction.raw_data_hex,
-        assetName: subAccount
+        assetName: subAccount && subAccount.type === 'TokenAccount'
           ? [
               tokenList.find(
                 t => t.id.toString() === subAccount.token.id.split("/")[2]
               ).message
-            ] // TODO: Find a better way to store this data ? where ?
+            ] // TODO: Find a better way to store this data ? where ? Not really typesafe too
           : undefined
       }
     );
-    transaction = {
-      ...preparedTransaction,
-      signature: [signature]
-    };
+
+    if (!isCancelled()) {
+      onSigned();
+
+      const transaction = {
+        ...preparedTransaction,
+        signature: [signature]
+      };
+
+      // Broadcast
+      const submittedPayment = await broadcastTron(transaction);
+      if (submittedPayment.result !== true) {
+        throw new Error(submittedPayment.resultMessage);
+      }
+
+      const hash = transaction.txID;
+      const operation = {
+        id: `${a.id}-${hash}-OUT`,
+        hash,
+        accountId: a.id,
+        type: "OUT",
+        value: t.amount,
+        fee: BigNumber(0),
+        blockHash: null,
+        blockHeight: null,
+        senders: [a.freshAddress],
+        recipients: [t.recipient],
+        date: new Date(),
+        extra: {}
+      };
+      onOperationBroadcasted(operation);
+    }
+  
   } finally {
     transport.close();
-  }
-
-  if (!isCancelled()) {
-    onSigned();
-
-    // Broadcast
-    const submittedPayment = await broadcastTron(transaction);
-    if (submittedPayment.result !== true) {
-      throw new Error(submittedPayment.resultMessage);
-    }
-
-    const hash = transaction.txID;
-    const operation = {
-      id: `${a.id}-${hash}-OUT`,
-      hash,
-      accountId: a.id,
-      type: "OUT",
-      value: t.amount,
-      fee: BigNumber(0),
-      blockHash: null,
-      blockHeight: null,
-      senders: [a.freshAddress],
-      recipients: [t.recipient],
-      date: new Date(),
-      extra: {}
-    };
-    onOperationBroadcasted(operation);
   }
 }
 
@@ -251,43 +260,46 @@ const createTransaction = () => ({
 
 const updateTransaction = (t, patch) => ({ ...t, ...patch });
 
-const getEstimatedFees = async t => {
-  // see : https://developers.tron.network/docs/bandwith#section-bandwidth-points-consumption
-  // 1. cost around 200 Bandwidth, if not enough check Free Bandwidth
-  // 2. If not enough, will cost some TRX
-  // 3. normal transfert cost around 0.002 TRX
-  // Special case: If activated an account, cost around 0.1 TRX
-  let fees = BigNumber(0);
-
+// see : https://developers.tron.network/docs/bandwith#section-bandwidth-points-consumption
+// 1. cost around 200 Bandwidth, if not enough check Free Bandwidth
+// 2. If not enough, will cost some TRX
+// 3. normal transfert cost around 0.002 TRX
+const getFeesFromBandwidth = (networkInfo: ?NetWorkInfo): BigNumber => {
   // Calculate Bandwidth :
-  if (t.networkInfo) {
+  if (networkInfo) {
     const {
       freeNetUsed = 0,
       freeNetLimit = 0,
       NetUsed = 0,
       NetLimit = 0
-    } = t.networkInfo;
+    } = networkInfo;
+    
     const bandwidth = freeNetLimit - freeNetUsed + NetLimit - NetUsed;
 
     if (bandwidth < AVERAGE_BANDWIDTH_COST) {
-      fees = fees.plus(BigNumber(2000));
-      // Cost is around 0.002 TRX
+      return BigNumber(2000); // Cost is around 0.002 TRX
     }
   }
 
-  // Active the account if there's no data, that require fees
-  if (t.recipient) {
-    const recipientAccount = await fetchTronAccount(t.recipient);
-    if (recipientAccount.length === 0) {
-      fees = fees.plus(BigNumber(100000));
-      // Cost is around 0.1 TRX
-    }
-  }
-
-  return fees;
+  return BigNumber(0); // no fee
 };
 
-const getTransactionStatus = async (a, t) => {
+// Special case: If activated an account, cost around 0.1 TRX
+const getFeesFromAccountActivation = async (recipient: string): Promise<BigNumber> => {
+  const recipientAccount = await fetchTronAccount(recipient);
+  if (recipientAccount.length === 0) {
+    return BigNumber(100000); // Cost is around 0.1 TRX
+  }
+};
+
+const getEstimatedFees = async t => {
+  const feesFromBandwidth = getFeesFromBandwith(t.networkInfo);
+  const feesFromAccountActivation = await getFeesFromAccountActivation(t.recipient);
+
+  return feesFromBandwidth.plus(feesFromAccountActivation);
+};
+
+const getTransactionStatus = async (a, t): Promise<TransactionStatus> => {
   const errors = {};
   const warnings = {};
   const tokenAccount = !t.subAccountId

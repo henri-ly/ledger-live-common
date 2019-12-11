@@ -39,13 +39,14 @@ export const freezeTronTransaction = async (a: Account, t: Transaction) => {
     frozen_balance: t.amount.toNumber(),
     frozen_duration: t.duration || 3,
     resource: t.resource,
-    owner_address: decode58Check(a.freshAddress)
+    owner_address: decode58Check(a.freshAddress),
+    receiver_address: t.recipient && decode58Check(t.recipient),
   };
-  if (t.recipient) {
-    txData["receiver_address"] = decode58Check(t.recipient);
-  }
+
   const url = "https://api.trongrid.io/wallet/freezebalance";
+
   const result = await post(url, txData);
+
   return result;
 };
 
@@ -70,22 +71,23 @@ export const createTronTransaction = async (
   t: Transaction,
   subAccount: SubAccount | null
 ): Promise<SendTransactionDataSuccess> => {
+  const tokenId = subAccount && subAccount.type === 'TokenAccount' 
+    ? subAccount.token.id.split("/")[2] // Need to get this token id properly
+    : null;
+
   const txData: SendTransactionData = {
     to_address: decode58Check(t.recipient),
     owner_address: decode58Check(a.freshAddress),
     amount: t.amount.toNumber(),
-    asset_name: null
+    asset_name: tokenId && Buffer.from(tokenId).toString("hex")
   };
-  let url = "https://api.trongrid.io/wallet/createtransaction";
-  let tokenId = "";
 
-  if (subAccount) {
-    tokenId = subAccount.token.id.split("/")[2]; // Need to get this token id properly
-    txData.asset_name = Buffer.from(tokenId).toString("hex"); // How to fix type problem ?
-    url = "https://api.trongrid.io/wallet/transferasset";
-  }
+  const url = subAccount
+    ? "https://api.trongrid.io/wallet/transferasset"
+    : "https://api.trongrid.io/wallet/createtransaction";
 
   const preparedTransaction = await post(url, txData);
+
   return preparedTransaction;
 };
 

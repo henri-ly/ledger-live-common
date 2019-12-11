@@ -66,6 +66,7 @@ function inferTransactions(
 ): Transaction[] {
   return transactions.flatMap(({ transaction, account }) => {
     invariant(transaction.family === "tron", "tron family");
+    
     let subAccountId;
     if (account.type === "TokenAccount") {
       subAccountId = account.id;
