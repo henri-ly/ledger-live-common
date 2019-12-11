@@ -108,19 +108,28 @@ export async function fetchTronAccountTxs(
   addr: string,
   shouldFetchMoreTxs: (Operation[]) => boolean
 ) {
-  let payload = await fetch(
-    `https://api.trongrid.io/v1/accounts/${addr}/transactions?limit=200`
-  );
-  let fetchedTxs = payload.data;
-  let txs = [];
-  while (fetchedTxs && Array.isArray(fetchedTxs) && shouldFetchMoreTxs(txs)) {
-    txs = txs.concat(fetchedTxs);
-    const next = get(payload, "meta.links.next");
-    if (!next) return txs;
-    payload = await fetch(next);
-    fetchedTxs = payload.data;
-  }
-  return txs;
+  const getTxs = async (url: string) => await fetch(url).then(resp => ({
+    results: resp.data,
+    nextUrl: get(resp, "meta.links.next")
+  }));
+
+  const getEntireTxs = async (url: string) => {
+    const response = await getTxs(url);
+
+    if (shouldFetchMoreTxs(response.results) && response.nextUrl) {
+      const nextResponse = await getEntireTxs(response.nextUrl);
+      return {
+        results: response.results.concat(nextResponse.results),
+        nextUrl: nextResponse.nextUrl
+      }
+    } else {
+      return response;
+    }
+  };
+
+  const entireTxs = await getEntireTxs(`https://api.trongrid.io/v1/accounts/${addr}/transactions?limit=200`)
+
+  return entireTxs.results
 }
 
 export const getTronAccountNetwork = async (address: string) => {
