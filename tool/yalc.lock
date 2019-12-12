@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "packages": {
+    "@ledgerhq/live-common": {
+      "signature": "2bcf4ea6b1617dda7dbbd1ad5ad411ce",
+      "file": true,
+      "replaced": "^9.0.0-alpha.26"
+    },
+    "@ledgerhq/ledger-core": {
+      "signature": "9c35d1b0e5c44f242268ce1f65500927",
+      "file": true,
+      "replaced": "^4.3.0"
+    }
+  }
+}
