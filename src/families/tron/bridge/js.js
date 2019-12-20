@@ -2,6 +2,7 @@
 import { BigNumber } from "bignumber.js";
 import { Observable } from "rxjs";
 import flatMap from "lodash/flatMap";
+import compact from "lodash/compact";
 import get from "lodash/get";
 import bs58check from "bs58check";
 import SHA256 from "crypto-js/sha256";
@@ -11,10 +12,10 @@ import type {
   TokenAccount,
   SubAccount,
   ChildAccount,
-  NetworkInfo,
   TransactionStatus
 } from "../../../types";
 import type {
+  NetworkInfo,
   Transaction,
   SendTransactionData,
   SendTransactionDataSuccess
@@ -68,9 +69,9 @@ async function doSignAndBroadcast({
       case "unfreeze":
         return unfreezeTronTransaction(a, t);
       case "freeze":
-        return unfreezeTronTransaction(a, t);
+        return freezeTronTransaction(a, t);
       default:
-        return createTronTransaction(a, t, subAccount || null);
+        return createTronTransaction(a, t, subAccount);
     }
   }
 
@@ -105,11 +106,13 @@ async function doSignAndBroadcast({
 
       // Broadcast
       const submittedPayment = await broadcastTron(transaction);
+
       if (submittedPayment.result !== true) {
         throw new Error(submittedPayment.resultMessage);
       }
 
       const hash = transaction.txID;
+
       const operation = {
         id: `${a.id}-${hash}-OUT`,
         hash,
@@ -124,6 +127,7 @@ async function doSignAndBroadcast({
         date: new Date(),
         extra: {}
       };
+  
       onOperationBroadcasted(operation);
     }
   
@@ -135,74 +139,81 @@ async function doSignAndBroadcast({
 const txToOps = ({ id, address }, token: ?TokenCurrency) => (
   tx: Object
 ): Operation[] => {
-  const ops = [];
   const hash = tx.txID;
   const date = new Date(tx.block_timestamp);
-  get(tx, "raw_data.contract", []).forEach(contract => {
-    if (
-      token
-        ? contract.type === "TransferAssetContract" &&
-          "tron/trc10/" + get(contract, "parameter.value.asset_name") ===
-            token.id
-        : contract.type === "TransferContract"
-    ) {
-      const { amount, owner_address, to_address } = get(
-        contract,
-        "parameter.value",
-        {}
-      );
-      if (amount && owner_address && to_address) {
-        const value = BigNumber(amount);
-        const from = b58(owner_address);
-        const to = b58(to_address);
-        const sending = address === from;
-        const receiving = address === to;
-        const fee = BigNumber(0);
-        if (sending) {
-          ops.push({
-            id: `${id}-${hash}-OUT`,
-            hash,
-            type: "OUT",
-            value: value.plus(fee),
-            fee,
-            blockHeight: 0,
-            blockHash: null,
-            accountId: id,
-            senders: [from],
-            recipients: [to],
-            date,
-            extra: {}
-          });
-        }
-        if (receiving) {
-          ops.push({
-            id: `${id}-${hash}-IN`,
-            hash,
-            type: "IN",
-            value,
-            fee,
-            blockHeight: 0,
-            blockHash: null,
-            accountId: id,
-            senders: [from],
-            recipients: [to],
-            date,
-            extra: {}
-          });
-        }
+
+  const transferContracts = 
+    get(tx, "raw_data.contract", [])
+      .filter(c => {
+        return token
+          ? c.type === "TransferAssetContract" &&
+              "tron/trc10/" + get(c, "parameter.value.asset_name") === token.id
+          : c.type === "TransferContract"
+      });
+
+  const operations = transferContracts.map(contract => {
+    const { amount, owner_address, to_address } = get(
+      contract,
+      "parameter.value",
+      {}
+    );
+
+    if (amount && owner_address && to_address) {
+      const value = BigNumber(amount);
+      const from = b58(owner_address);
+      const to = b58(to_address);
+      const sending = address === from;
+      const receiving = address === to;
+      const fee = tx.txInfo && tx.txInfo.fee ? BigNumber(tx.txInfo.fee) : BigNumber(0);
+
+      if (sending) {
+        return {
+          id: `${id}-${hash}-OUT`,
+          hash,
+          type: "OUT",
+          value: contract.type === "TransferContract" ? value.plus(fee) : value, // fee is not charged in TRC tokens
+          fee,
+          blockHeight: 0,
+          blockHash: null,
+          accountId: id,
+          senders: [from],
+          recipients: [to],
+          date,
+          extra: {}
+        };
+      }
+      if (receiving) {
+        return {
+          id: `${id}-${hash}-IN`,
+          hash,
+          type: "IN",
+          value: value,
+          fee,
+          blockHeight: 0,
+          blockHash: null,
+          accountId: id,
+          senders: [from],
+          recipients: [to],
+          date,
+          extra: {}
+        };
       }
     }
   });
-  return ops;
+
+  return operations;
 };
 
 const getAccountShape = async info => {
   const tronAcc = await fetchTronAccount(info.address);
+
   if (tronAcc.length === 0) {
     return { balance: BigNumber(0) };
   }
+
   const acc = tronAcc[0];
   const spendableBalance = acc.balance ? BigNumber(acc.balance) : BigNumber(0);
+
   const balance = spendableBalance.plus(
     get(acc, "frozen", []).reduce(
       (sum, o) => sum.plus(o.frozen_balance),
@@ -211,30 +222,43 @@ const getAccountShape = async info => {
   );
 
   const txs = await fetchTronAccountTxs(info.address, txs => txs.length < 1000);
-  const operations = flatMap(txs, txToOps(info));
 
-  const subAccounts: SubAccount[] = [];
+  const parentOperations: Operation[] = flatMap(txs, txToOps(info));
 
-  get(acc, "assetV2", []).forEach(({ key, value }) => {
-    const token = findTokenById(`tron/trc10/${key}`);
-    if (!token) return;
-    const id = info.id + "+" + key;
-    const sub: TokenAccount = {
-      type: "TokenAccount",
-      id,
-      parentId: info.id,
-      token,
-      balance: BigNumber(value),
-      operations: flatMap(txs, txToOps({ ...info, id }, token)),
-      pendingOperations: []
-    };
-    subAccounts.push(sub);
-  });
+  const subAccounts: SubAccount[] = 
+    compact(
+      get(acc, "assetV2", [])
+        .map(({ key, value }) => {
+          const token = findTokenById(`tron/trc10/${key}`);
+          if (!token) return;
+          const id = info.id + "+" + key;
+          const sub: TokenAccount = {
+            type: "TokenAccount",
+            id,
+            parentId: info.id,
+            token,
+            balance: BigNumber(value),
+            operations: flatMap(txs, txToOps({ ...info, id }, token)),
+            pendingOperations: []
+          };
+          return sub;
+        })
+    );
+
+  // get 'OUT' token operations with fee
+  const subOutOperationsWithFee: Operation[] = 
+    flatMap(subAccounts.map(s => s.operations))
+      .filter(o => o.type === 'OUT' && o.fee.isGreaterThan(0))
+      .map(o => ({ ...o, value: o.fee }));
+
+  // add them to the parent operations and sort by date desc
+  const parentOpsAndSubOutOpsWithFee =
+    parentOperations.concat(subOutOperationsWithFee).sort((a, b) => b.date - a.date)
 
   return {
     balance,
     spendableBalance,
-    operations,
+    operations: parentOpsAndSubOutOpsWithFee,
     subAccounts
   };
 };
@@ -255,7 +279,8 @@ const createTransaction = () => ({
   mode: "send",
   duration: 3,
   recipient: "",
-  networkInfo: null
+  networkInfo: null,
+  resource: null
 });
 
 const updateTransaction = (t, patch) => ({ ...t, ...patch });
@@ -264,7 +289,7 @@ const updateTransaction = (t, patch) => ({ ...t, ...patch });
 // 1. cost around 200 Bandwidth, if not enough check Free Bandwidth
 // 2. If not enough, will cost some TRX
 // 3. normal transfert cost around 0.002 TRX
-const getFeesFromBandwidth = (networkInfo: ?NetWorkInfo): BigNumber => {
+const getFeesFromBandwidth = (networkInfo: ?NetworkInfo): BigNumber => {
   // Calculate Bandwidth :
   if (networkInfo) {
     const {
@@ -277,7 +302,7 @@ const getFeesFromBandwidth = (networkInfo: ?NetWorkInfo): BigNumber => {
     const bandwidth = freeNetLimit - freeNetUsed + NetLimit - NetUsed;
 
     if (bandwidth < AVERAGE_BANDWIDTH_COST) {
-      return BigNumber(2000); // Cost is around 0.002 TRX
+      return BigNumber(2000); // cost is around 0.002 TRX
     }
   }
 
@@ -287,44 +312,48 @@ const getFeesFromBandwidth = (networkInfo: ?NetWorkInfo): BigNumber => {
 // Special case: If activated an account, cost around 0.1 TRX
 const getFeesFromAccountActivation = async (recipient: string): Promise<BigNumber> => {
   const recipientAccount = await fetchTronAccount(recipient);
+
   if (recipientAccount.length === 0) {
-    return BigNumber(100000); // Cost is around 0.1 TRX
+    return BigNumber(100000); // cost is around 0.1 TRX
   }
+
+  return BigNumber(0); // no fee
 };
 
 const getEstimatedFees = async t => {
-  const feesFromBandwidth = getFeesFromBandwith(t.networkInfo);
+  const feesFromBandwidth = getFeesFromBandwidth(t.networkInfo);
   const feesFromAccountActivation = await getFeesFromAccountActivation(t.recipient);
 
   return feesFromBandwidth.plus(feesFromAccountActivation);
 };
 
 const getTransactionStatus = async (a, t): Promise<TransactionStatus> => {
-  const errors = {};
-  const warnings = {};
+  const errors: { [string]: Error } = {};
+  const warnings: { [string]: Error } = {};
+
   const tokenAccount = !t.subAccountId
     ? null
     : a.subAccounts && a.subAccounts.find(ta => ta.id === t.subAccountId);
+
   const account = tokenAccount || a;
 
   if (!t.recipient) {
-    errors.recipient = new RecipientRequired("");
+    errors.recipient = new RecipientRequired();
   } else if (!(await validateAddress(t.recipient))) {
-    errors.recipient = new InvalidAddress("", {
-      currencyName: a.currency.name
-    });
+    errors.recipient = new InvalidAddress(null, { currencyName: a.currency.name });
   }
 
   const estimatedFees = errors.recipient
     ? BigNumber(0)
     : await getEstimatedFees(t); //TBD
-  const amount = BigNumber(t.amount || 0);
 
-  const totalSpent = BigNumber(t.amount || 0).plus(estimatedFees);
+  const amount = t.amount;
+
+  const totalSpent = amount.plus(estimatedFees);
 
   if (totalSpent.gt(BigNumber(account.balance))) {
     errors.amount = new NotEnoughBalance();
-  } else if (!errors.amount && amount.eq(0)) {
+  } else if (amount.eq(0)) {
     errors.amount = new AmountRequired();
   }
 
@@ -368,14 +397,10 @@ const signAndBroadcast = (a, t, deviceId) =>
   });
 
 const prepareTransaction = async (a, t: Transaction): Promise<Transaction> => {
-  const networkInfo =
+  const networkInfo: NetworkInfo =
     t.networkInfo || (await getTronAccountNetwork(a.freshAddress));
 
-  if (t.networkInfo === networkInfo) {
-    return t;
-  }
-
-  return { ...t, networkInfo };
+  return t.networkInfo === networkInfo ? t : { ...t, networkInfo };
 };
 
 const accountBridge: AccountBridge<Transaction> = {
