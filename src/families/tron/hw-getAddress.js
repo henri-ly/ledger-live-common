@@ -1,20 +1,15 @@
 // @flow
 
-import Trx from "./hw-app-trx";
+import Trx from "hw-app-trx";
 import type { Resolver } from "../../hw/getAddress/types";
 
 const resolver: Resolver = async (
   transport,
-  { path, verify, askChainCode }
+  { path, verify }
 ) => {
   const trx = new Trx(transport);
-  const r = await trx.getAddress(path, verify, askChainCode || false);
-  return {
-    path,
-    address: r.address,
-    publicKey: r.publicKey.toString("hex"),
-    chainCode: r.chainCode
-  };
+  const r = await trx.getAddress(path, undefined);
+  return { ...r, path };
 };
 
 export default resolver;
