@@ -1,5 +1,5 @@
 // @flow
-import Trx from "hw-app-trx";
+import Trx from "@ledgerhq/hw-app-trx";
 import type Transport from "@ledgerhq/hw-transport";
 import type { CryptoCurrency } from "../../types";
 
