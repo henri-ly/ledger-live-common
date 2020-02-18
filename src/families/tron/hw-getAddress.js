@@ -8,7 +8,7 @@ const resolver: Resolver = async (
   { path, verify }
 ) => {
   const trx = new Trx(transport);
-  const r = await trx.getAddress(path, undefined);
+  const r = await trx.getAddress(path, verify);
   return { ...r, path };
 };
 
