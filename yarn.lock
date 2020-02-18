@@ -3616,10 +3616,10 @@ human-signals@^1.1.1:
   resolved "https://registry.yarnpkg.com/human-signals/-/human-signals-1.1.1.tgz#c5b1cd14f50aeae09ab6c59fe63ba3395fe4dfa3"
   integrity sha512-SEQu7vl8KjNL2eoGBLF3+wAjpsNfA9XMlXAYj/3EdaNfAlxKthD1xjEQfGOUhllCGGJVNY34bRr6lPINhNjyZw==
 
-hw-app-trx@^5.9.1:
-  version "5.9.1"
-  resolved "https://registry.yarnpkg.com/hw-app-trx/-/hw-app-trx-5.9.1.tgz#abc9df7608b5e180f6814b166f19e0a2bcc879b7"
-  integrity sha512-A/lhRYFJK0W00UR8xZUaDNeRcG0dbM8bT5g8yQ00ISuob4VUM7CpHPhC8dYzSzbz88KZAUIbY4e8c6JNXykFhA==
+hw-app-trx@^5.9.2:
+  version "5.9.2"
+  resolved "https://registry.yarnpkg.com/hw-app-trx/-/hw-app-trx-5.9.2.tgz#5b550c8236e3e73eca8499a7aab0840971ceffa9"
+  integrity sha512-KvqbZMDn4IVxxlc9sPe3En8OZmspZaLv212D2rR/45ELTiU7i490cUDnzwUYAJvfLor31fW3puPIfEHd+rCxbA==
   dependencies:
     "@ledgerhq/errors" "^5.9.0"
     "@ledgerhq/hw-transport" "^5.9.0"
