@@ -23,8 +23,7 @@ const options = [
 
 function inferTransactions(
   transactions: Array<{ account: AccountLike, transaction: Transaction }>,
-  opts: Object,
-  { inferAmount }: *
+  opts: Object
 ): Transaction[] {
   return transactions.map(({ transaction }) => {
     invariant(transaction.family === "stellar", "stellar family");

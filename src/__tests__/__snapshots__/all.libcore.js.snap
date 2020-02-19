@@ -67194,7 +67194,7 @@ Array [
 exports[`stellar currency bridge scanAccounts stellar seed 1 1`] = `
 Array [
   Object {
-    "balance": "127738083",
+    "balance": "93170093",
     "currencyId": "stellar",
     "derivationMode": "sep5",
     "freshAddress": "GDDU4HHNCSZ2BI6ELSSFKPSOBL2TEB4A3ZJWOCT2DILQKVJTZBNSOZA2",
@@ -67208,10 +67208,10 @@ Array [
     "id": "libcore:1:stellar:GDDU4HHNCSZ2BI6ELSSFKPSOBL2TEB4A3ZJWOCT2DILQKVJTZBNSOZA2:sep5",
     "index": 0,
     "name": "Stellar 1",
-    "operationsCount": 78,
+    "operationsCount": 79,
     "pendingOperations": Array [],
     "seedIdentifier": "cb3d982e538ffe77a40f9179096db07a14ecec5669933cc3e47309be848c66a9",
-    "spendableBalance": "127738083",
+    "spendableBalance": "93170093",
     "starred": false,
     "unitMagnitude": 7,
     "xpub": "GDDU4HHNCSZ2BI6ELSSFKPSOBL2TEB4A3ZJWOCT2DILQKVJTZBNSOZA2",
@@ -67851,6 +67851,23 @@ Array [
       ],
       "type": "IN",
       "value": "100000",
+    },
+    Object {
+      "accountId": "libcore:1:stellar:GDDU4HHNCSZ2BI6ELSSFKPSOBL2TEB4A3ZJWOCT2DILQKVJTZBNSOZA2:sep5",
+      "blockHash": null,
+      "blockHeight": 28285732,
+      "extra": Object {},
+      "fee": "100",
+      "hash": "7c3efea6dc7f6ea186060d5ad24414117e9f964f3a64cb3282efcb5eff63cb70",
+      "id": "libcore:1:stellar:GDDU4HHNCSZ2BI6ELSSFKPSOBL2TEB4A3ZJWOCT2DILQKVJTZBNSOZA2:sep5-7c3efea6dc7f6ea186060d5ad24414117e9f964f3a64cb3282efcb5eff63cb70-OUT",
+      "recipients": Array [
+        "GBQBJV5SNTD5CSNP3KWKI5UJ67VW74FACFJDTN2JLOCYUC45445EEDKY",
+      ],
+      "senders": Array [
+        "GDDU4HHNCSZ2BI6ELSSFKPSOBL2TEB4A3ZJWOCT2DILQKVJTZBNSOZA2",
+      ],
+      "type": "OUT",
+      "value": "34567990",
     },
     Object {
       "accountId": "libcore:1:stellar:GDDU4HHNCSZ2BI6ELSSFKPSOBL2TEB4A3ZJWOCT2DILQKVJTZBNSOZA2:sep5",

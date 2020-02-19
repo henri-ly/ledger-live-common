@@ -101,7 +101,6 @@ export const makeSignOperation = <T: Transaction, CT>({
             coreAccount,
             transaction,
             coreTransaction: builded,
-            coreAccount,
             isCancelled: () => cancelled,
             onDeviceStreaming: ({ progress, index, total }) =>
               o.next({ type: "device-streaming", progress, index, total }),

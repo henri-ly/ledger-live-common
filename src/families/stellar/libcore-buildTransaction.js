@@ -1,10 +1,8 @@
 // @flow
 
-import invariant from "invariant";
 import { BigNumber } from "bignumber.js";
 import { FeeNotLoaded } from "@ledgerhq/errors";
 import type { Account } from "../../types";
-import { isValidRecipient } from "../../libcore/isValidRecipient";
 import {
   bigNumberToLibcoreAmount,
   bigNumberToLibcoreBigInt,
@@ -17,7 +15,6 @@ import type {
   CoreWallet
 } from "../../libcore/types";
 import type {
-  CoreStellarLikeAccount,
   CoreStellarLikeTransaction,
   CoreStellarLikeTransactionBuilder,
   Transaction
@@ -26,8 +23,7 @@ import type {
 const setSequenceToTransactionBuilder = async (
   transactionBuilder,
   stellarLikeAccount,
-  core,
-  coreCurrency
+  core
 ) => {
   const sequence = await stellarLikeAccount.getSequence();
   const sequenceBigNumber = await libcoreBigIntToBigNumber(sequence);
@@ -128,7 +124,6 @@ export async function stellarBuildTransaction({
   isPartial: boolean,
   isCancelled: () => boolean
 }): Promise<?CoreStellarLikeTransaction> {
-  const { currency } = account;
   const { recipient, fees, memoType, memoValue } = transaction;
 
   let stellarAccount;
@@ -151,8 +146,7 @@ export async function stellarBuildTransaction({
   await setSequenceToTransactionBuilder(
     transactionBuilder,
     stellarAccount,
-    core,
-    coreCurrency
+    core
   );
   if (isCancelled()) return;
 

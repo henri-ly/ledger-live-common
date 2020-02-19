@@ -1,10 +1,6 @@
 // @flow
 
 import type { CoreOperation } from "../../libcore/types";
-import type {
-  CoreStellarLikeOperation,
-  CoreStellarLikeTransaction
-} from "./types";
 
 async function stellarBuildOperation({
   coreOperation

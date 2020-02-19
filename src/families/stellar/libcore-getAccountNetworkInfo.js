@@ -14,12 +14,14 @@ type Output = Promise<NetworkInfo>;
 
 async function stellar({ coreAccount }: Input): Output {
   const stellarLikeAccount: CoreStellarLikeAccount = await coreAccount.asStellarLikeAccount();
-  const baseFees = await stellarLikeAccount.getFeeStats();
-  const lastBaseFee = await baseFees.getLastBaseFee();
+  // We disable this because node doesn't return us any fee stats ATM
+  // const baseFees = await stellarLikeAccount.getFeeStats();
+  // const lastBaseFee = await baseFees.getLastBaseFee();
 
   return {
     family: "stellar",
-    fees: BigNumber(lastBaseFee),
+    // fees: BigNumber(lastBaseFee),
+    fees: BigNumber("100"),
     baseReserve: await libcoreAmountToBigNumber(
       await stellarLikeAccount.getBaseReserve()
     )

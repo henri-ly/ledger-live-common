@@ -1,7 +1,6 @@
 // @flow
 
 import Stellar from "@ledgerhq/hw-app-str";
-import invariant from "invariant";
 import type { CoreStellarLikeTransaction, Transaction } from "./types";
 import { makeSignOperation } from "../../libcore/signOperation";
 import {
@@ -15,7 +14,6 @@ async function signTransaction({
   transport,
   transaction,
   coreTransaction,
-  coreAccount,
   isCancelled,
   onDeviceSignatureGranted,
   onDeviceSignatureRequested

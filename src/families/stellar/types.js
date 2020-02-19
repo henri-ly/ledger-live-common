@@ -42,11 +42,11 @@ declare class CoreStellarLikeTransactionBuilder {
 declare class CoreStellarLikeTransaction {
   transactionHash: string;
   toRawTransaction(): string;
-  toSignatureBase(): Uint8Array;
+  toSignatureBase(): Promise<string>;
   putSignature(signature: string, address: CoreAddress): null;
-  getSourceAccount(): CoreAddress;
-  getSourceAccountSequence(): CoreBigInt;
-  getFee(): CoreAmount;
+  getSourceAccount(): Promise<CoreAddress>;
+  getSourceAccountSequence(): Promise<CoreBigInt>;
+  getFee(): Promise<CoreAmount>;
 }
 
 declare class CoreStellarLikeOperation {

@@ -4,8 +4,7 @@ import { BigNumber } from "bignumber.js";
 import type { DatasetTest } from "../../__tests__/test-helpers/bridge";
 import {
   InvalidAddressBecauseDestinationIsAlsoSource,
-  NotEnoughBalance,
-  FeeNotLoaded
+  NotEnoughBalance
 } from "@ledgerhq/errors";
 import type { Transaction } from "./types";
 import transactionTransformer from "./transaction";
@@ -70,7 +69,7 @@ const dataset: DatasetTest<Transaction> = {
           transactions: [
             {
               name: "Same as Recipient",
-              transaction: (t, account) => ({
+              transaction: t => ({
                 ...t,
                 amount: BigNumber(100),
                 recipient:
@@ -183,7 +182,7 @@ const dataset: DatasetTest<Transaction> = {
             },
             {
               name: "memo text - success",
-              transaction: (t, account) => ({
+              transaction: t => ({
                 ...t,
                 amount: BigNumber(100),
                 recipient:
@@ -198,7 +197,7 @@ const dataset: DatasetTest<Transaction> = {
             },
             {
               name: "memo text - error",
-              transaction: (t, account) => ({
+              transaction: t => ({
                 ...t,
                 amount: BigNumber(100),
                 recipient:
@@ -213,7 +212,7 @@ const dataset: DatasetTest<Transaction> = {
             },
             {
               name: "memo id - success",
-              transaction: (t, account) => ({
+              transaction: t => ({
                 ...t,
                 amount: BigNumber(100),
                 recipient:
@@ -228,7 +227,7 @@ const dataset: DatasetTest<Transaction> = {
             },
             {
               name: "memo id - error",
-              transaction: (t, account) => ({
+              transaction: t => ({
                 ...t,
                 amount: BigNumber(100),
                 recipient:
@@ -243,7 +242,7 @@ const dataset: DatasetTest<Transaction> = {
             },
             {
               name: "memo hash - error",
-              transaction: (t, account) => ({
+              transaction: t => ({
                 ...t,
                 amount: BigNumber(100),
                 recipient:

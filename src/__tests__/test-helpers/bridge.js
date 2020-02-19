@@ -77,7 +77,7 @@ export type DatasetTest<T> = {|
 
 // FIXME move out into DatasetTest to be defined in
 const blacklistOpsSumEq = {
-  currencies: ["ripple", "ethereum"],
+  currencies: ["ripple", "ethereum", "stellar"],
   impls: ["mock"]
 };
 

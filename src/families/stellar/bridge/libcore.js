@@ -4,11 +4,7 @@ import { BigNumber } from "bignumber.js";
 import {
   AmountRequired,
   NotEnoughBalance,
-  NotEnoughBalanceToDelegate,
-  NotEnoughBalanceInParentAccount,
   FeeNotLoaded,
-  FeeTooHigh,
-  NotSupportedLegacyAddress,
   InvalidAddressBecauseDestinationIsAlsoSource
 } from "@ledgerhq/errors";
 import {
@@ -17,19 +13,14 @@ import {
   NewAccountMinimumTransaction
 } from "../../../errors";
 import { validateRecipient } from "../../../bridge/shared";
-import type { Account, AccountBridge, CurrencyBridge } from "../../../types";
+import type { AccountBridge, CurrencyBridge } from "../../../types";
 import type { Transaction } from "../types";
 import { scanAccounts } from "../../../libcore/scanAccounts";
 import { getAccountNetworkInfo } from "../../../libcore/getAccountNetworkInfo";
 import { sync } from "../../../libcore/syncAccount";
-import { getFeesForTransaction } from "../../../libcore/getFeesForTransaction";
 import broadcast from "../libcore-broadcast";
 import signOperation from "../libcore-signOperation";
-import { makeLRUCache } from "../../../cache";
-import { isAccountBalanceSignificant } from "../../../account";
 import { withLibcore } from "../../../libcore/access";
-import { libcoreBigIntToBigNumber } from "../../../libcore/buildBigNumber";
-import { getEnv } from "../../../env";
 import memoTypeCheck from "../memo-type-check";
 
 import { getWalletName } from "../../../account";
@@ -82,14 +73,8 @@ const getMemoValidation = (memoType: string, memoValue: string) => {
       break;
 
     case "MEMO_ID":
-      try {
-        const number = new BigNumber(memoValue.toString());
-
-        if (number.isNaN()) {
-          throw new WrongMemoFormat();
-        }
-      } catch (e) {
-        throw e;
+      if (BigNumber(memoValue.toString()).isNaN()) {
+        throw new WrongMemoFormat();
       }
       break;
 
@@ -228,7 +213,7 @@ const prepareTransaction = async (a, t) => {
 
 const preload = async () => {};
 
-const hydrate = (data: mixed) => {};
+const hydrate = () => {};
 
 const currencyBridge: CurrencyBridge = {
   preload,
