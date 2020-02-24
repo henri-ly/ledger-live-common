@@ -1126,25 +1126,25 @@
     "@ledgerhq/errors" "^5.7.0"
     "@ledgerhq/hw-transport" "^5.7.0"
 
-"@ledgerhq/hw-app-str@^5.9.0":
-  version "5.9.0"
-  resolved "https://registry.yarnpkg.com/@ledgerhq/hw-app-str/-/hw-app-str-5.9.0.tgz#f4e3ab947e75291d6f3b7882aecc9ec87d23fcfd"
-  integrity sha512-vW6DMVG/FnIz0oCswyrv+8EGFjmrzDRQmPEd7fb2isjte1KwqXQtUlyD6Z569pNtGoUtessm82O8zRh9M95esQ==
+"@ledgerhq/hw-app-str@5.7.0":
+  version "5.7.0"
+  resolved "https://registry.yarnpkg.com/@ledgerhq/hw-app-str/-/hw-app-str-5.7.0.tgz#41af0d0d5864730a88c9a24e44cfab66a215c5d0"
+  integrity sha512-Wl1DW5amU91c8deY2KtB5D6InxiE0fHj1KQULFiTf9z67TnZSOm0kB2tvU5Yhtduap8JUHRLAxuJBwZQu46xtg==
   dependencies:
-    "@ledgerhq/hw-transport" "^5.9.0"
+    "@ledgerhq/hw-transport" "^5.7.0"
     base32.js "^0.1.0"
     sha.js "^2.3.6"
     tweetnacl "^1.0.0"
 
-"@ledgerhq/hw-app-xrp@5.9.0":
-  version "5.9.0"
-  resolved "https://registry.yarnpkg.com/@ledgerhq/hw-app-xrp/-/hw-app-xrp-5.9.0.tgz#08ef29550c6620e5d2a0de481c4dcd30f9719018"
-  integrity sha512-7LzPIlicJYpZ1IYKZ+nEJ2XEITdWzDTbeTIoKQ7y6mPJ42/dTio6Qrm9J8dmH6kEl/DAR7MwDhwAnYHLJnf3cA==
+"@ledgerhq/hw-app-xrp@5.7.0":
+  version "5.7.0"
+  resolved "https://registry.yarnpkg.com/@ledgerhq/hw-app-xrp/-/hw-app-xrp-5.7.0.tgz#ef93c57a1fab74800e91f31a9c49779463165a98"
+  integrity sha512-s4kFzsi1b8spUgednNx0MHV30GPAM8YpqK+qS/ThlJyLhg8zNG0EGBSQx63wNLUN9N5Cf7XHp7OQlMw/xhtzeQ==
   dependencies:
     "@ledgerhq/hw-transport" "^5.7.0"
     bip32-path "0.4.2"
 
-"@ledgerhq/hw-transport-mocker@^5.7.0":
+"@ledgerhq/hw-transport-mocker@5.7.0":
   version "5.7.0"
   resolved "https://registry.yarnpkg.com/@ledgerhq/hw-transport-mocker/-/hw-transport-mocker-5.7.0.tgz#929c3796e240054e6875fe360483ac710786b748"
   integrity sha512-2FHmLY1ccelb/c9dCfL/U5ylLvH/Y4OdQaPP2LdtBSAB6Efn1gJkl8mKdEGlrcR8DRZtC2NOaPDa+L3fXF7oxA==
@@ -1161,7 +1161,7 @@
     "@ledgerhq/errors" "^5.7.0"
     events "^3.1.0"
 
-"@ledgerhq/logs@5.6.0", "@ledgerhq/logs@^5.6.0":
+"@ledgerhq/logs@5.7.0", "@ledgerhq/logs@^5.6.0":
   version "5.6.0"
   resolved "https://registry.yarnpkg.com/@ledgerhq/logs/-/logs-5.6.0.tgz#04277b3c90bee43bb2bd8a5489c5a8aac022687b"
   integrity sha512-pzJ8tQCTqMFaEFmfBcHuqA97gkxLgGb6ztysUCnWsBlG3dczQ0dbz4BRZswDkBkLIh0j8RzM4Ez2uRedxZCJ4w==
@@ -2240,7 +2240,7 @@ core-js@^1.0.0:
   resolved "https://registry.yarnpkg.com/core-js/-/core-js-1.2.7.tgz#652294c14651db28fa93bd2d5ff2983a4f08c636"
   integrity sha1-ZSKUwUZR2yj6k70tX/KYOk8IxjY=
 
-core-js@^2.4.0, core-js@^2.6.3, core-js@^2.6.5:
+core-js@^2.4.0, core-js@^2.6.5:
   version "2.6.11"
   resolved "https://registry.yarnpkg.com/core-js/-/core-js-2.6.11.tgz#38831469f9922bded8ee21c9dc46985e0399308c"
   integrity sha512-5wjnpaT/3dV+XB4borEsnAYQchn00XSgTAWKDkEqv+K8KevjbzmofK6hfJ9TZIlpj2N0xQpazy7PiRQiWHqzWg==
@@ -2361,11 +2361,6 @@ cssstyle@^2.0.0:
   integrity sha512-QXSAu2WBsSRXCPjvI43Y40m6fMevvyRm8JVAuF9ksQz5jha4pWP1wpaK7Yu5oLFc6+XAY+hj8YhefyXcBB53gg==
   dependencies:
     cssom "~0.3.6"
-
-cursor@^0.1.5:
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/cursor/-/cursor-0.1.5.tgz#ea778c2b09d33c2e564fd92147076750483ebb2c"
-  integrity sha1-6neMKwnTPC5WT9khRwdnUEg+uyw=
 
 damerau-levenshtein@^1.0.4:
   version "1.0.5"
@@ -4396,16 +4391,6 @@ jest@^25.1.0:
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-4.0.0.tgz#19203fb59991df98e3a287050d4647cdeaf32499"
   integrity sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==
 
-js-xdr@^1.1.2:
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/js-xdr/-/js-xdr-1.1.3.tgz#68cf021c0d8a6f8b75e8e3f2d528575a22d7cd1a"
-  integrity sha512-zFg7dIc6lI7LiZ/eru5U/cOur/SJGkbKflgkwoFIiHewgpmBGsRJNKbeOh/8Ffzz5mYvfmsO6gHAe5wv/ZYM2g==
-  dependencies:
-    core-js "^2.6.3"
-    cursor "^0.1.5"
-    lodash "^4.17.5"
-    long "^2.2.3"
-
 js-yaml@^3.13.1:
   version "3.13.1"
   resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-3.13.1.tgz#aff151b30bfdfa8e49e05da22e7415e9dfa37847"
@@ -4677,7 +4662,7 @@ lodash.uniq@^4.5.0:
   resolved "https://registry.yarnpkg.com/lodash.uniq/-/lodash.uniq-4.5.0.tgz#d0225373aeb652adc1bc82e4945339a842754773"
   integrity sha1-0CJTc662Uq3BvILklFM5qEJ1R3M=
 
-lodash@^4.12.0, lodash@^4.17.10, lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.4, lodash@^4.17.5:
+lodash@^4.12.0, lodash@^4.17.10, lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.4:
   version "4.17.15"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
   integrity sha512-8xOcRHvCjnocdS5cpwXQXVzmmh5e5+saE2QGoeQmbKmRS6J3VQppPOIt0MnmE+4xlZoumy0GPG0D0MVIQbNA1A==
@@ -4688,11 +4673,6 @@ lolex@^5.0.0:
   integrity sha512-h4hmjAvHTmd+25JSwrtTIuwbKdwg5NzZVRMLn9saij4SZaepCrTCxPr35H/3bjwfMJtN+t3CX8672UIkglz28A==
   dependencies:
     "@sinonjs/commons" "^1.7.0"
-
-long@^2.2.3:
-  version "2.4.0"
-  resolved "https://registry.yarnpkg.com/long/-/long-2.4.0.tgz#9fa180bb1d9500cdc29c4156766a1995e1f4524f"
-  integrity sha1-n6GAux2VAM3CnEFWdmoZleH0Uk8=
 
 loose-envify@^1.0.0, loose-envify@^1.1.0, loose-envify@^1.4.0:
   version "1.4.0"
